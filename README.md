@@ -24,8 +24,10 @@ En zo voor *alle* numerieke properties: percentage, energy_rate (watt), voltage,
 ## Gebruiken
 
 ```sh
-task build                          # statische linux binary in bin/
-scp bin/upower-exporter je-machine: # zet hem op je doelmachine
+# statische linux binary in bin/, kan makkelijker als je go-task gebruikt (zie Taskfile.yml)
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/upower-exporter .
+
+scp bin/upower-exporter je-machine:
 ./upower-exporter                   # luistert op :9459
 curl localhost:9459/metrics
 ```
