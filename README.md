@@ -2,7 +2,7 @@
 
 Een kleine Prometheus exporter die power metrics (batterij, lichtnet, draadloze muizen, ...) uitleest via UPower en beschikbaar stelt op `/metrics`. Elke keer dat Prometheus komt scrapen, vraagt de exporter alles vers op via D-Bus — geen caching, geen gedoe.
 
-## resultaat in grafana
+## resultaat in prometheus/grafana
 
 <p align="center">
   <img src="img/prometheus.png" alt="prometheus">
@@ -116,3 +116,18 @@ curl localhost:9459/metrics
 ```
 
 Dat werkt, maar je ziet meteen waarom de Go-versie handiger is: die ene metric hierboven is hard gecodeerd, terwijl de echte exporter automatisch *alle* devices (ook je bluetooth toetsenbord) en *alle* properties meepakt via UPower, plus deftige labels — en het is één statische binary zonder Python runtime op je server.
+
+
+## prometheus scrape config
+
+
+```yml
+# Scrape configuration
+scrape_configs:
+  - job_name: 'kiosk-upower'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['delaptop:9459']
+        labels:
+          host: 'delaptop'
+```
