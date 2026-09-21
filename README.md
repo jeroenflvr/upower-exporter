@@ -2,6 +2,21 @@
 
 Een kleine Prometheus exporter die power metrics (batterij, lichtnet, draadloze muizen, ...) uitleest via UPower en beschikbaar stelt op `/metrics`. Elke keer dat Prometheus komt scrapen, vraagt de exporter alles vers op via D-Bus — geen caching, geen gedoe.
 
+## resultaat in grafana
+
+<p align="center">
+  <img src="img/prometheus.png" alt="prometheus">
+</p>
+
+<p align="center">
+  <img src="img/grafana.png" alt="grafana">
+</p>
+
+<p align="center">
+  <img src="img/energy_graph.png" alt="energy graph">
+</p>
+
+
 ## Wat doet dit eigenlijk?
 
 Op Linux weet de kernel perfect hoe je batterij eraan toe is, en "_alles is een file_":
