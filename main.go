@@ -1,8 +1,3 @@
-// Command upower-exporter exposes UPower power metrics for Prometheus.
-//
-// On each scrape it enumerates all UPower devices over the system D-Bus and
-// exports every numeric/boolean device property as a gauge, plus the UPower
-// daemon-level properties (OnBattery, LidIsClosed, ...).
 package main
 
 import (
@@ -18,6 +13,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// helper: stringProp haalt een string-eigenschap op uit de D-Bus eigenschappen.
+func stringProp(props map[string]dbus.Variant, name string) string {
+	if v, ok := props[name]; ok {
+		if s, ok := v.Value().(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
 const (
 	upowerDest       = "org.freedesktop.UPower"
 	upowerPath       = dbus.ObjectPath("/org/freedesktop/UPower")
@@ -29,11 +34,12 @@ const (
 
 var camelBoundary = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 
+// helper: snakeCase zet een CamelCase string om naar snake_case.
 func snakeCase(s string) string {
 	return strings.ToLower(camelBoundary.ReplaceAllString(s, "${1}_${2}"))
 }
 
-// toFloat converts numeric and boolean D-Bus property values to float64.
+// helper: toFloat converts numeric and boolean D-Bus property values to float64.
 func toFloat(v interface{}) (float64, bool) {
 	switch t := v.(type) {
 	case bool:
@@ -59,14 +65,19 @@ func toFloat(v interface{}) (float64, bool) {
 	return 0, false
 }
 
+// collector implements the Prometheus collector interface for UPower metrics.
+// Vergelijkbaar met een Java-style object-oriented design, maar dan zonder hoofdpijn.
+// Overkill voor onze power metingen, maar zo is het geïmplementeerd in de Prometheus-collector.
 type collector struct {
 	conn *dbus.Conn
 }
 
+// een Describe-functie die de Prometheus-metrics beschrijft, moet aanwezig zijn, zelfs als deze leeg is.
 func (c *collector) Describe(chan<- *prometheus.Desc) {
 	// Intentionally empty: metrics are dynamic, this is an unchecked collector.
 }
 
+// Collect-functie die de daadwerkelijke metrics verzamelt en doorstuurt naar Prometheus.
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	up := 1.0
 	if err := c.collectDaemon(ch); err != nil {
@@ -83,12 +94,14 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	)
 }
 
+// collectDaemon verzamelt de eigenschappen van de UPower-daemon en stuurt ze door naar Prometheus.
 func (c *collector) collectDaemon(ch chan<- prometheus.Metric) error {
 	var props map[string]dbus.Variant
 	obj := c.conn.Object(upowerDest, upowerPath)
 	if err := obj.Call(getAllProperties, 0, daemonInterface).Store(&props); err != nil {
 		return err
 	}
+
 	for name, variant := range props {
 		val, ok := toFloat(variant.Value())
 		if !ok {
@@ -106,6 +119,8 @@ func (c *collector) collectDaemon(ch chan<- prometheus.Metric) error {
 	return nil
 }
 
+// channels in go worden gebruikt om metrics van verschillende apparaten asynchroon te verzamelen.
+// een channel in go is een FIFO queue: het eerste element dat wordt verzonden, is het eerste dat wordt ontvangen. Multiple producer, single consumer pattern.
 func (c *collector) collectDevices(ch chan<- prometheus.Metric) error {
 	var paths []dbus.ObjectPath
 	obj := c.conn.Object(upowerDest, upowerPath)
@@ -115,6 +130,7 @@ func (c *collector) collectDevices(ch chan<- prometheus.Metric) error {
 	// Include the composite display device as well.
 	paths = append(paths, "/org/freedesktop/UPower/devices/DisplayDevice")
 
+	// doen we hier voor elk apparaat (batterij, display, etc.), hadden met go routines en channels de verzameling asynchroon kunnen doen, maar voor de eenvoud doen we het hier gewoontjessynchroon.
 	for _, path := range paths {
 		var props map[string]dbus.Variant
 		dev := c.conn.Object(upowerDest, path)
@@ -144,15 +160,6 @@ func (c *collector) collectDevices(ch chan<- prometheus.Metric) error {
 		}
 	}
 	return nil
-}
-
-func stringProp(props map[string]dbus.Variant, name string) string {
-	if v, ok := props[name]; ok {
-		if s, ok := v.Value().(string); ok {
-			return s
-		}
-	}
-	return ""
 }
 
 func main() {
