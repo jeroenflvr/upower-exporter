@@ -1,0 +1,12 @@
+[Unit]
+Description=UPower Prometheus exporter
+After=dbus.service upower.service
+Wants=upower.service
+
+[Service]
+ExecStart=/usr/local/bin/upower-exporter --listen-address=:9459
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
