@@ -8,12 +8,48 @@ Op Linux weet de kernel perfect hoe je batterij eraan toe is, en "_alles is een 
 
 ```sh
 $ cat /sys/class/power_supply/BAT0/energy_now
-41850000
+41450000
+$ upower -i $(upower -e | grep battery)
+  native-path:          BAT0
+  vendor:               SMP
+  model:                L17M4PB0
+  serial:               28
+  power supply:         yes
+  updated:              Mon 21 Sep 2026 09:32:27 PM CEST (18 seconds ago)
+  has history:          yes
+  has statistics:       yes
+  battery
+    present:             yes
+    rechargeable:        yes
+    state:               charging
+    warning-level:       none
+    energy:              41.45 Wh
+    energy-empty:        0 Wh
+    energy-full:         42.13 Wh
+    energy-full-design:  44.08 Wh
+    energy-rate:         15.881 W
+    voltage:             8.552 V
+    charge-cycles:       N/A
+    time to full:        2.6 minutes
+    percentage:          98%
+    capacity:            95.5762%
+    technology:          lithium-ion
+    icon-name:          'battery-full-charging-symbolic'
+  History (charge):
+    1790019117  98.000  charging
+  History (rate):
+    1790019147  15.881  charging
+    1790019117  16.219  charging
+    1790019086  16.532  charging
+    1790019056  16.875  charging
+
+$
 ```
 
-Dat is de huidige energie in µWh (microwattuur), dus 41,85 Wh. UPower leest diezelfde files uit, rekent dat om naar deftige eenheden, en zet het op de system D-Bus. Onze exporter pikt dat daar op en maakt er een Prometheus metric van:
+Dat is de huidige energie in µWh (microwattuur), dus 41,45 Wh. UPower leest diezelfde files uit, rekent dat om naar deftige eenheden, en zet het op de system D-Bus. Onze exporter pikt dat daar op en maakt er een Prometheus metric van:
 
 ```
+
 # HELP upower_device_energy UPower device property Energy.
 # TYPE upower_device_energy gauge
 upower_device_energy{device="battery_BAT0",model="DELL 1VX1H97",native_path="BAT0"} 41.85
